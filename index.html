@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Öğretmenler Günü Sürprizi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+/* ============ TASARIM DEĞİŞKENLERİ ============ */
+:root{
+  --ink:#121c3a;        /* koyu mürekkep mavisi (zemin) */
+  --ink-2:#1b2850;
+  --paper:#fbfaf6;      /* mektup kağıdı */
+  --line:#cfd9ee;       /* kareli defter çizgisi */
+  --pen:#1d3fbb;        /* tükenmez kalem mavisi */
+  --hi:#ffdb4d;         /* fosforlu kalem sarısı */
+  --red:#e0483e;        /* öğretmen kalemi kırmızısı */
+  --text:#1c2238;
+  --sans:'Bricolage Grotesque',system-ui,sans-serif;
+  --serif:'Newsreader',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--serif);color:var(--text);background:var(--ink);
+  min-height:100vh;overflow-x:hidden;
+  /* kareli defter zemini */
+  background-image:
+    linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+:focus-visible{outline:3px solid var(--hi);outline-offset:3px}
+button{font-family:var(--sans);cursor:pointer;border:0}
+
+/* ============ KİLİT EKRANI ============ */
+#lock{
+  position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:20px;
+  background:var(--ink);transition:opacity .9s ease,transform .9s ease;
+  background-image:inherit;background-size:28px 28px;
+}
+#lock.gone{opacity:0;transform:scale(1.06);pointer-events:none}
+.sheet{
+  width:min(560px,100%);background:var(--paper);border-radius:6px;padding:34px 28px 30px;
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.6);transform:rotate(-1deg);position:relative;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% 32px;
+}
+.sheet::before{ /* kırmızı kenar çizgisi, defter gibi */
+  content:"";position:absolute;left:44px;top:0;bottom:0;width:2px;background:var(--red);opacity:.5}
+.sheet>*{position:relative;padding-left:26px}
+.lock-title{font-family:var(--sans);font-weight:800;font-size:clamp(26px,6vw,36px);line-height:1.1;color:var(--ink)}
+.lock-sub{font-style:italic;margin:10px 0 18px;font-size:18px}
+.q{font-size:20px;line-height:1.35;min-height:84px;margin-bottom:14px}
+.opts{display:grid;gap:10px}
+.opt{
+  text-align:left;background:#fff;border:2px solid var(--ink);border-radius:10px;padding:12px 14px;
+  font-family:var(--serif);font-size:17px;color:var(--text);transition:transform .15s,background .15s;
+}
+.opt:hover{transform:translateX(4px);background:#fff8d6}
+.opt.ok{background:#d9f5df;border-color:#1f8a43}
+.opt.no{background:#ffe0dc;border-color:var(--red);animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.feedback{min-height:48px;margin-top:14px;font-style:italic;color:var(--red);font-size:17px}
+.dots{display:flex;gap:8px;margin-top:6px}
+.dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);transition:.3s}
+.dot.on{background:var(--hi)}
+
+/* ============ ANA SAHNE ============ */
+#main{opacity:0;visibility:hidden;transition:opacity 1.2s ease}
+#main.show{opacity:1;visibility:visible}
+section{max-width:760px;margin:0 auto;padding:70px 20px}
+.hero{min-height:88vh;display:flex;flex-direction:column;justify-content:center;color:#fff}
+.hero h1{
+  font-family:var(--sans);font-weight:800;line-height:.98;letter-spacing:-.03em;
+  font-size:clamp(46px,13vw,104px);
+}
+.hero h1 mark{background:var(--hi);color:var(--ink);padding:0 .12em;border-radius:6px;
+  display:inline-block;transform:rotate(-1.5deg)}
+.hero p{font-size:clamp(19px,4vw,24px);margin-top:26px;max-width:30em;color:#d3dbf3;font-style:italic}
+.scroll-hint{margin-top:40px;font-family:var(--sans);color:var(--hi);font-size:15px;animation:bob 2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(8px)}}
+
+/* mektup */
+.letter{
+  background:var(--paper);border-radius:6px;padding:44px 34px 40px 60px;position:relative;
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.6);
+  background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% 34px;
+}
+.letter::before{content:"";position:absolute;left:44px;top:0;bottom:0;width:2px;background:var(--red);opacity:.45}
+.letter h2{font-family:var(--sans);font-size:28px;color:var(--pen);margin-bottom:22px}
+.letter p{font-size:clamp(18px,3.8vw,21px);line-height:34px;margin-bottom:34px;opacity:0;transform:translateY(10px);
+  transition:opacity .9s ease,transform .9s ease}
+.letter p.in{opacity:1;transform:none}
+.sign{font-family:var(--sans);font-weight:800;color:var(--pen);font-size:22px}
+.hl{background:linear-gradient(transparent 55%,var(--hi) 55%)}
+
+/* başarı kartları */
+.cards-title{font-family:var(--sans);font-weight:800;color:#fff;font-size:clamp(30px,7vw,46px);letter-spacing:-.02em}
+.cards-sub{color:#d3dbf3;font-style:italic;margin:8px 0 26px;font-size:18px}
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.card{perspective:900px;background:none;height:230px;padding:0;text-align:left}
+.card-in{position:relative;width:100%;height:100%;transition:transform .7s cubic-bezier(.3,1.3,.5,1);transform-style:preserve-3d}
+.card.flip .card-in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;padding:22px;
+  display:flex;flex-direction:column;justify-content:space-between}
+.front{background:var(--paper);color:var(--ink);border-top:10px solid var(--c,var(--pen))}
+.front .ic{font-size:38px}
+.front h3{font-family:var(--sans);font-size:22px;line-height:1.15}
+.front small{font-family:var(--sans);color:#6b7390;font-size:14px}
+.back{background:var(--c,var(--pen));color:#fff;transform:rotateY(180deg);font-size:18px;line-height:1.4;font-style:italic;justify-content:center}
+
+/* final */
+.final{text-align:center;color:#fff;padding-bottom:120px}
+.final p.pre{font-style:italic;color:#d3dbf3;margin-bottom:22px;font-size:19px}
+.big-btn{
+  font-weight:800;font-size:clamp(20px,5vw,26px);padding:20px 34px;border-radius:999px;
+  background:var(--hi);color:var(--ink);box-shadow:0 8px 0 #c9a419;transition:transform .12s,box-shadow .12s;
+}
+.big-btn:active{transform:translateY(6px);box-shadow:0 2px 0 #c9a419}
+#closing{max-width:560px;margin:34px auto 0;background:var(--paper);color:var(--text);border-radius:8px;
+  padding:0 26px;font-size:21px;line-height:1.55;max-height:0;overflow:hidden;opacity:0;
+  transition:max-height 1s ease,opacity 1s ease,padding 1s ease}
+#closing.open{max-height:520px;opacity:1;padding:28px 26px}
+#closing b{font-family:var(--sans);color:var(--pen)}
+canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:50}
+
+@media(max-width:520px){
+  .letter{padding:34px 20px 30px 52px}
+  .letter::before{left:36px}
+  .sheet::before{left:30px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ KİLİT ============ -->
+<div id="lock">
+  <div class="sheet">
+    <h1 class="lock-title" id="lockTitle"></h1>
+    <p class="lock-sub">Sürprizin kilidi 3 soruda açılıyor.</p>
+    <div class="q" id="qText"></div>
+    <div class="opts" id="opts"></div>
+    <div class="feedback" id="fb"></div>
+    <div class="dots" id="dots"></div>
+  </div>
+</div>
+
+<!-- ============ ANA SAHNE ============ -->
+<main id="main">
+  <section class="hero">
+    <h1 id="heroTitle"></h1>
+    <p id="heroSub"></p>
+    <div class="scroll-hint">aşağı kaydır ↓</div>
+  </section>
+
+  <section>
+    <article class="letter" id="letter"></article>
+  </section>
+
+  <section>
+    <h2 class="cards-title">Başarı Kartların</h2>
+    <p class="cards-sub">Kartlara dokun, arkasında bir not var.</p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="final">
+    <p class="pre">Bir şey daha var...</p>
+    <button class="big-btn" id="finalBtn">Sürpriz Final</button>
+    <div id="closing" aria-live="polite"></div>
+  </section>
+</main>
+<canvas id="fx"></canvas>
+
+<script>
+/* =====================================================
+   ✏️  BURAYI KENDİNE GÖRE DÜZENLE
+   Tüm yazılar ve sorular bu bölümde. Aşağıdaki kodlara
+   dokunmana gerek yok.
+   ===================================================== */
+const CONFIG = {
+  hitap: "Abi",                 // örn: "Mert Abi", "Hocam"
+  brans: "öğretmenlik",         // örn: "matematik öğretmenliği"
+
+  // KİLİT SORULARI: ok:true olan doğru cevaptır.
+  // wrong: yanlış cevapta çıkacak esprili uyarı
+  quiz: [
+    { q: "Bu sürprizin sahibi kim?",
+      opts: [
+        { t: "Dünyanın en sabırlı öğretmeni (yani sen)", ok: true },
+        { t: "Kantindeki çay ocağı abisi", wrong: "Yok yok, çay ocağı abisi de değerli ama bu sürpriz başkasına ait." }
+      ]},
+    { q: "Bir öğretmenin en güçlü süper gücü hangisidir?",
+      opts: [
+        { t: "Sessizce bakıp sınıfı susturmak", ok: true },
+        { t: "Uçmak", wrong: "Uçan öğretmen görmedim. Sınıfı bir bakışla susturan çok gördüm. Tekrar dene." },
+        { t: "Görünmez olmak", wrong: "Görünmez olsan ödevi teslim etmeyenleri kim yakalar? Tekrar dene." }
+      ]},
+    { q: "Bu sürprizi hazırlayan kişi {hitap} ile ilgili ne düşünüyor?",
+      opts: [
+        { t: "Onunla çok gurur duyuyor", ok: true },
+        { t: "Hiçbir şey düşünmüyor", wrong: "Öyle olsaydı bu sayfayı hazırlamazdı. Tekrar dene." },
+        { t: "Ödevi unuttuğu için endişeli", wrong: "Endişeli değil, gururlu. Bir daha dene." }
+      ]}
+  ],
+
+  heroTitle: ["İyi ki", "varsın,", "{hitap}."],   // <mark> içine alınacak kelime sırası için aşağıya bak
+  heroSub: "24 Kasım Öğretmenler Günün kutlu olsun. Bu sayfa sadece senin için.",
+
+  // MEKTUP: her madde bir paragraf. **kalın vurgulu** yazmak için **...** kullan
+  letterTitle: "Sevgili {hitap},",
+  letter: [
+    "Bugün Öğretmenler Günü ve ben sana sadece bir kutlama mesajı yazmak istemedim. Seni anlatan, senin için yazılmış bir şey istedim.",
+    "Sınıfta kimlerin hayatına dokunduğunu belki hiç bilmeyeceksin. Ama ben bir şeyi çok iyi biliyorum: **bir öğretmen olarak yaptığın iş, bir iş değil, bir emanet.**",
+    "Yorulduğun günler oldu, biliyorum. Yine de ertesi sabah aynı sabırla kapıdan girdin. Bu yüzden seninle gurur duyuyorum. Evde mi, sınıfta mı, hangisinde daha iyi öğretmensin, hâlâ karar veremedim.",
+    "Bana hep yol gösterdin. Nasıl öğretileceğini, nasıl dinleneceğini, nasıl pes edilmeyeceğini. **İyi ki abimsin, iyi ki öğretmensin.**"
+  ],
+  signature: "Seni çok seven kardeşin",
+
+  // BAŞARI KARTLARI: renk, ikon, başlık, alt başlık, arkasındaki not
+  cards: [
+    { c:"#1d3fbb", i:"🧠", t:"En Sabırlı Öğretmen", s:"Aynı soruyu 7. kez anlattı", back:"Yedinci kez anlatırken bile ilk seferki gibi gülümsemen var ya, işte o." },
+    { c:"#e0483e", i:"👀", t:"Sessizliğin Mimarı", s:"Tek bakışla tüm sınıf susar", back:"Bu bakışı bana da denedin, işe yaradı, itiraf ediyorum." },
+    { c:"#1f8a43", i:"🧭", t:"Yol Gösterici", s:"Doğru yolu hep o gösterdi", back:"Kaybolduğum her yerde önce senin sesini hatırladım." },
+    { c:"#8a4bd0", i:"💛", t:"Gönüllerin Hocası", s:"Notla ölçülmez", back:"Öğrencilerin seni yıllar sonra da hatırlayacak. Bundan eminim." }
+  ],
+
+  closingTitle: "Teşekkürler, {hitap}.",
+  closing: "Öğrettiklerin için, sabrın için, bana güvendiğin için. **Öğretmenler Günün kutlu olsun!** 🎉"
+};
+
+/* ================= KOD BÖLÜMÜ ================= */
+const $ = s => document.querySelector(s);
+const fill = s => s.replaceAll("{hitap}", CONFIG.hitap);
+// **kalın** işaretini <span class="hl"> ile vurgulu yap (güvenli: önce HTML kaçışı)
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const rich = s => esc(fill(s)).replace(/\*\*(.+?)\*\*/g, '<span class="hl">$1</span>');
+
+/* ---- Kilit: quiz ---- */
+$('#lockTitle').textContent = "Önce kendini kanıtla, " + CONFIG.hitap + ".";
+let step = 0;
+const dots = $('#dots');
+CONFIG.quiz.forEach(() => dots.insertAdjacentHTML('beforeend','<span class="dot"></span>'));
+
+function showQ(){
+  const item = CONFIG.quiz[step];
+  $('#qText').textContent = fill(item.q);
+  $('#fb').textContent = "";
+  const box = $('#opts'); box.innerHTML = "";
+  // seçenekleri karıştır
+  [...item.opts].sort(() => Math.random() - .5).forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = o.t;
+    b.onclick = () => {
+      if(o.ok){
+        b.classList.add('ok');
+        dots.children[step].classList.add('on');
+        $('#fb').style.color = '#1f8a43';
+        $('#fb').textContent = "Doğru! 🎉";
+        box.querySelectorAll('button').forEach(x => x.disabled = true);
+        step++;
+        setTimeout(() => step < CONFIG.quiz.length ? showQ() : unlock(), 900);
+      } else {
+        b.classList.remove('no'); void b.offsetWidth; b.classList.add('no');
+        $('#fb').style.color = '';
+        $('#fb').textContent = o.wrong;
+      }
+    };
+    box.appendChild(b);
+  });
+}
+
+/* ---- Kilidi aç ---- */
+function unlock(){
+  $('#lock').classList.add('gone');
+  $('#main').classList.add('show');
+  window.scrollTo(0,0);
+  burst(80); // küçük bir konfeti
+  setTimeout(() => $('#lock').remove(), 1000);
+  // mektup paragraflarını kaydırdıkça sırayla göster
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+  }), {threshold:.4});
+  document.querySelectorAll('.letter p').forEach(p => io.observe(p));
+}
+
+/* ---- Ana sahneyi doldur ---- */
+const ht = CONFIG.heroTitle;
+$('#heroTitle').innerHTML = `${esc(fill(ht[0]))} <mark>${esc(fill(ht[1]))}</mark> ${esc(fill(ht[2]))}`;
+$('#heroSub').textContent = fill(CONFIG.heroSub);
+
+$('#letter').innerHTML =
+  `<h2>${esc(fill(CONFIG.letterTitle))}</h2>` +
+  CONFIG.letter.map(p => `<p>${rich(p)}</p>`).join('') +
+  `<p class="sign">${esc(CONFIG.signature)}</p>`;
+
+$('#grid').innerHTML = CONFIG.cards.map(c => `
+  <button class="card" style="--c:${c.c}" aria-label="${esc(c.t)} kartını çevir">
+    <div class="card-in">
+      <div class="face front"><div class="ic">${c.i}</div><div><h3>${esc(c.t)}</h3><small>${esc(c.s)}</small></div></div>
+      <div class="face back">${esc(c.back)}</div>
+    </div>
+  </button>`).join('');
+document.querySelectorAll('.card').forEach(c => c.onclick = () => c.classList.toggle('flip'));
+
+/* ---- Konfeti (canvas) ---- */
+const cv = $('#fx'), ctx = cv.getContext('2d');
+let parts = [], raf = null;
+const resize = () => { cv.width = innerWidth; cv.height = innerHeight; };
+resize(); addEventListener('resize', resize);
+const COLORS = ['#ffdb4d','#e0483e','#1d3fbb','#1f8a43','#8a4bd0','#ffffff'];
+
+function burst(n){
+  for(let i=0;i<n;i++){
+    parts.push({
+      x: innerWidth/2, y: innerHeight*0.6,
+      vx: (Math.random()-.5)*16, vy: -Math.random()*16-4,
+      s: Math.random()*7+4, r: Math.random()*6, vr:(Math.random()-.5)*.4,
+      c: COLORS[Math.random()*COLORS.length|0], life: 150+Math.random()*60
+    });
+  }
+  if(!raf) loop();
+}
+function loop(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p => {
+    p.vy += .35; p.x += p.vx; p.y += p.vy; p.vx *= .99; p.r += p.vr; p.life--;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
+    ctx.fillStyle = p.c; ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); ctx.restore();
+  });
+  parts = parts.filter(p => p.life>0 && p.y<innerHeight+40);
+  raf = parts.length ? requestAnimationFrame(loop) : (ctx.clearRect(0,0,cv.width,cv.height), null);
+}
+
+/* ---- Sürpriz Final ---- */
+$('#finalBtn').onclick = () => {
+  const box = $('#closing');
+  box.innerHTML = `<b>${esc(fill(CONFIG.closingTitle))}</b><br>${rich(CONFIG.closing)}`;
+  box.classList.add('open');
+  burst(220);
+  setTimeout(() => burst(160), 450);
+  setTimeout(() => burst(160), 900);
+  setTimeout(() => box.scrollIntoView({behavior:'smooth',block:'center'}), 300);
+};
+
+showQ();
+</script>
+</body>
+</html>
